@@ -4,6 +4,7 @@ import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { PrismaService } from '../src/prisma/prisma.service';
 import * as pactum from 'pactum';
 import { AuthDto } from 'src/auth/dto';
+import { EditUserDto } from 'src/user/dto';
 
 describe('App e2e', () => {
   let app: INestApplication;
@@ -37,8 +38,7 @@ describe('App e2e', () => {
           .withBody({
             password: dto.password,
           })
-          .expectStatus(400)
-          .inspect();
+          .expectStatus(400);
       });
 
       it('should throw if password empty', () => {
@@ -48,8 +48,7 @@ describe('App e2e', () => {
           .withBody({
             email: dto.email,
           })
-          .expectStatus(400)
-          .inspect();
+          .expectStatus(400);
       });
 
       it('should throw if no body provided', () => {
@@ -61,8 +60,7 @@ describe('App e2e', () => {
           .spec()
           .post('/auth/signup')
           .withBody(dto)
-          .expectStatus(201)
-          .inspect();
+          .expectStatus(201);
       });
     });
     describe('Signin', () => {
@@ -73,8 +71,7 @@ describe('App e2e', () => {
           .withBody({
             password: dto.password,
           })
-          .expectStatus(400)
-          .inspect();
+          .expectStatus(400);
       });
 
       it('should throw if password empty', () => {
@@ -84,14 +81,12 @@ describe('App e2e', () => {
           .withBody({
             email: dto.email,
           })
-          .expectStatus(400)
-          .inspect();
+          .expectStatus(400);
       });
 
       it('should throw if no body provided', () => {
         return pactum.spec().post('/auth/signin').expectStatus(400).inspect();
       });
-
 
       it('should signin', () => {
         return pactum
@@ -99,14 +94,41 @@ describe('App e2e', () => {
           .post('/auth/signin')
           .withBody(dto)
           .expectStatus(200)
-          .inspect();
+          .stores('userAt', 'access_token');
       });
     });
   });
 
   describe('User', () => {
-    describe('Get me', () => {});
-    describe('Edit user', () => {});
+    describe('Get me', () => {
+      it('should get current user', () => {
+        return pactum
+          .spec()
+          .get('/users/me')
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200);
+      });
+    });
+    describe('Edit user', () => {
+      it('should edit user', () => {
+        const dto: EditUserDto = {
+          firstName: 'Vaolo',
+          email: 'd@m2ail.com',
+        };
+        return pactum
+          .spec()
+          .patch('/users')
+          .withBody(dto)
+          .withHeaders({
+            Authorization: 'Bearer $S{userAt}',
+          })
+          .expectStatus(200)
+          .expectBodyContains(dto.firstName)
+          .expectBodyContains(dto.email);
+      });
+    });
   });
 
   describe('Bookmarks', () => {
